@@ -11,6 +11,7 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
+const multer = require("multer");
 require("dotenv").config();
 
 const verifyEmail = require("./src/verify");
@@ -60,6 +61,11 @@ var transporter = nodemailer.createTransport({
 const createToken = id => {
   return jwt.sign({ id }, process.env.JWT_SECRET);
 };
+
+const storage = multer.memoryStorage();
+const upload = multer({
+  storage: storage,
+});
 
 app.get("/", (req, res) => {
   res.render("login");
