@@ -92,6 +92,15 @@ app.get("/DHome", async (req, res) => {
     res.status(500).send("Error fetching doctors.");
   }
 });
+app.get("/POnlineConsult", async (req, res) => {
+  try {
+    const doctors = await doctorInfo.find();
+    res.render("POnlineConsult", { doctors });
+  } catch (error) {
+    console.error(error);
+    res.status(500).send("Error fetching doctors.");
+  }
+});
 
 /*-----LOGIN-----*/
 app.post("/login", verifyEmail, async (req, res) => {
@@ -184,6 +193,39 @@ app.post("/register", async (req, res) => {
     res.render("login");
   } catch (err) {
     console.log(err);
+  }
+});
+
+/*---ONLINE CONSULTATION----*/
+app.post("/POnlineConsult", upload.single("image"), async (req, res) => {
+  const checkdate = req.body.date;
+  const data = {
+    name: req.cookies.name,
+    date: req.body.date,
+    description: req.body.description,
+    email: req.cookies.emailUser,
+    age: req.cookies.age,
+    gender: req.cookies.gender,
+    isVerified: false,
+    paid: "Unpaid",
+    status: "Waiting to Approved",
+  };
+  try {
+    const existingAppointment = await OnlineConsult.findOne({
+      date: checkdate,
+    });
+    if (existingAppointment) {
+      // Appointment already booked
+      res.redirect("bookFailed");
+      console.log("Booked Already");
+    } else {
+      console.log(data);
+      await OnlineConsult.insertMany([data]);
+      console.log(data);
+      res.redirect("PHome");
+    }
+  } catch (error) {
+    console.log(error);
   }
 });
 
