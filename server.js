@@ -86,7 +86,7 @@ app.get("/register", (req, res) => {
 });
 
 app.get("/PHome", (req, res) => {
-  res.render("Phome");
+  res.render("PHome");
 });
 app.get("/DHome", async (req, res) => {
   try {
