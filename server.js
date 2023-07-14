@@ -12,11 +12,15 @@ const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
 const multer = require("multer");
+const moment = require("moment");
+const { v4: uuidv4 } = require("uuid");
+const io = require("socket.io")(server, { cors: { origin: "*" } });
 require("dotenv").config();
 
 const verifyEmail = require("./src/verify");
 const calculateAge = require("./src/calculateAge");
 const loginVerify = require("./src/login-verify");
+const transferAppointmentsToHistory = require("./src/trasnferAppointemt");
 
 const {
   Register,
@@ -67,6 +71,40 @@ const upload = multer({
   storage: storage,
 });
 
+//socket.io chat
+const users = {};
+
+io.on("connection", socket => {
+  socket.on("join-room", (roomId, userId, user) => {
+    socket.join(roomId);
+    socket.broadcast.emit("connected", userId);
+    //socket.broadcast.emit("user-connected", userId);
+    console.log("Your rommId is " + roomId);
+
+    socket.on("disconnect", () => {
+      socket.broadcast.emit("user-disconnected", users[socket.id]);
+      //socket.to(roomId).emit('user-disconnected', userId)
+      delete users[socket.id];
+    });
+  });
+  socket.on("join", name => {
+    users[socket.id] = name;
+    console.log(name);
+    socket.broadcast.emit("user-connected", name);
+  });
+  socket.on("join-email", email => {
+    users[socket.id] = email;
+    console.log(email);
+    socket.broadcast.emit("email-connected", email);
+  });
+  socket.on("send-chat-message", message => {
+    socket.broadcast.emit("chat-message", {
+      message: message,
+      name: users[socket.id],
+    });
+  });
+});
+
 app.get("/", (req, res) => {
   res.render("login");
 });
@@ -106,6 +144,85 @@ app.get("/POnlineConsult", async (req, res) => {
     console.error(error);
     res.status(500).send("Error fetching doctors.");
   }
+});
+app.get("/myappointment", transferAppointmentsToHistory, async (req, res) => {
+  try {
+    const appointment = await Appointment.find({
+      email: req.cookies.emailUser,
+    });
+
+    const onlineConsult = await OnlineConsult.find({
+      email: req.cookies.emailUser,
+    });
+    const age = req.cookies.age;
+    const fullname = req.cookies.name;
+    const gender = req.cookies.gender;
+
+    // Modify the appointmentList array to include the enabled property
+    const appointmentList = appointment.map(appointment => {
+      const currentTime = new Date();
+      const appointmentDate = appointment.date;
+      const oneHourAhead = new Date(appointmentDate.getTime() + 60 * 60 * 1000); // Add 1 hour to the appointment date
+      const enabled =
+        currentTime > appointmentDate && currentTime < oneHourAhead; // Determine if the button should be enabled
+      const formattedDate = moment(appointmentDate).format(
+        "MMMM Do YYYY, h:mm:ss a"
+      ); // Format the date
+
+      return {
+        ...appointment.toObject(),
+        enabled,
+        formattedDate,
+      };
+    });
+
+    const onlineConsultList = onlineConsult.map(onlineConsult => {
+      const currentTime = new Date();
+      const onlineConsultDate = onlineConsult.date;
+      const oneHourAhead = new Date(
+        onlineConsultDate.getTime() + 60 * 60 * 1000
+      );
+      const enabled =
+        onlineConsult.paid === "Paid" &&
+        currentTime > onlineConsultDate &&
+        currentTime < oneHourAhead;
+      const formattedDate = moment(onlineConsultDate).format(
+        "MMMM Do YYYY, h:mm:ss a"
+      );
+      const paymentEnabled = onlineConsult.status === "Approved";
+
+      return {
+        ...onlineConsult.toObject(),
+        enabled,
+        formattedDate,
+        paymentEnabled,
+      };
+    });
+
+    res.render("myappointment", {
+      appointmentList,
+      onlineConsultList,
+      age,
+      fullname,
+      gender,
+    });
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+    console.log(error);
+  }
+});
+
+app.get("/room", (req, res) => {
+  res.redirect(`/room${uuidv4()}`);
+});
+
+app.get("/room:room", (req, res) => {
+  res.render("room", {
+    roomId: "room" + req.params.room,
+    name: req.cookies.name,
+    email: req.cookies.emailUser,
+    paypalClientId: process.env.PAYPAL_CLIENT_ID,
+  });
 });
 
 /*-----LOGIN-----*/
