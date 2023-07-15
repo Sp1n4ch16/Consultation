@@ -11,7 +11,6 @@ const crypto = require("crypto");
 const bcrypt = require("bcrypt");
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
-const multer = require("multer");
 const moment = require("moment");
 const { v4: uuidv4 } = require("uuid");
 const io = require("socket.io")(server, { cors: { origin: "*" } });
@@ -21,6 +20,11 @@ const verifyEmail = require("./src/verify");
 const calculateAge = require("./src/calculateAge");
 const loginVerify = require("./src/login-verify");
 const transferAppointmentsToHistory = require("./src/trasnferAppointemt");
+const { storage, upload } = require("./src/multer");
+const transporter = require("./src/nodemailer");
+const createToken = require("./src/jwt");
+
+const myappointmentAPI = require("./API/getmyappointment");
 
 const {
   Register,
@@ -51,25 +55,6 @@ app.use(
     resave: false,
   })
 );
-
-var transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.AUTH_EMAIL,
-    pass: process.env.AUTH_PASS,
-  },
-  tls: {
-    rejectUnauthorized: false,
-  },
-});
-const createToken = id => {
-  return jwt.sign({ id }, process.env.JWT_SECRET);
-};
-
-const storage = multer.memoryStorage();
-const upload = multer({
-  storage: storage,
-});
 
 //socket.io chat
 const users = {};
@@ -145,72 +130,7 @@ app.get("/POnlineConsult", async (req, res) => {
     res.status(500).send("Error fetching doctors.");
   }
 });
-app.get("/myappointment", transferAppointmentsToHistory, async (req, res) => {
-  try {
-    const appointment = await Appointment.find({
-      email: req.cookies.emailUser,
-    });
-
-    const onlineConsult = await OnlineConsult.find({
-      email: req.cookies.emailUser,
-    });
-    const age = req.cookies.age;
-    const fullname = req.cookies.name;
-    const gender = req.cookies.gender;
-
-    // Modify the appointmentList array to include the enabled property
-    const appointmentList = appointment.map(appointment => {
-      const currentTime = new Date();
-      const appointmentDate = appointment.date;
-      const oneHourAhead = new Date(appointmentDate.getTime() + 60 * 60 * 1000); // Add 1 hour to the appointment date
-      const enabled =
-        currentTime > appointmentDate && currentTime < oneHourAhead; // Determine if the button should be enabled
-      const formattedDate = moment(appointmentDate).format(
-        "MMMM Do YYYY, h:mm:ss a"
-      ); // Format the date
-
-      return {
-        ...appointment.toObject(),
-        enabled,
-        formattedDate,
-      };
-    });
-
-    const onlineConsultList = onlineConsult.map(onlineConsult => {
-      const currentTime = new Date();
-      const onlineConsultDate = onlineConsult.date;
-      const oneHourAhead = new Date(
-        onlineConsultDate.getTime() + 60 * 60 * 1000
-      );
-      const enabled =
-        onlineConsult.paid === "Paid" &&
-        currentTime > onlineConsultDate &&
-        currentTime < oneHourAhead;
-      const formattedDate = moment(onlineConsultDate).format(
-        "MMMM Do YYYY, h:mm:ss a"
-      );
-      const paymentEnabled = onlineConsult.status === "Approved";
-
-      return {
-        ...onlineConsult.toObject(),
-        enabled,
-        formattedDate,
-        paymentEnabled,
-      };
-    });
-
-    res.render("myappointment", {
-      appointmentList,
-      onlineConsultList,
-      age,
-      fullname,
-      gender,
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-    console.log(error);
-  }
-});
+app.get("/myappointment", transferAppointmentsToHistory, myappointmentAPI);
 
 app.get("/room", (req, res) => {
   res.redirect(`/room${uuidv4()}`);
