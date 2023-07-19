@@ -64,28 +64,15 @@ app.use(
 const users = {};
 
 io.on("connection", socket => {
-  socket.on("join-room", (roomId, userId, user) => {
+  socket.on("join-room", (roomId, userId) => {
     socket.join(roomId);
-    socket.broadcast.emit("connected", userId);
-    //socket.broadcast.emit("user-connected", userId);
-    console.log("Your rommId is " + roomId);
+    socket.broadcast.emit("user-connected", userId);
 
     socket.on("disconnect", () => {
-      socket.broadcast.emit("user-disconnected", users[socket.id]);
-      //socket.to(roomId).emit('user-disconnected', userId)
-      delete users[socket.id];
+      socket.broadcast.emit("user-disconnected", userId);
     });
   });
-  socket.on("join", name => {
-    users[socket.id] = name;
-    console.log(name);
-    socket.broadcast.emit("user-connected", name);
-  });
-  socket.on("join-email", email => {
-    users[socket.id] = email;
-    console.log(email);
-    socket.broadcast.emit("email-connected", email);
-  });
+
   socket.on("send-chat-message", message => {
     socket.broadcast.emit("chat-message", {
       message: message,

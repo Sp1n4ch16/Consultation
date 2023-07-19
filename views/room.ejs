@@ -114,14 +114,16 @@
   
     myVideo.muted = true;
 
-    var peer = new Peer();
-
 /*var peer = new Peer(undefined, {
   host: "/",
   port: "3001",
 });*/
 
 let myVideoStream;
+
+const myPeer = new Peer();
+
+const peers = {};
 
 var getUserMedia =
   navigator.getUserMedia ||
@@ -137,50 +139,37 @@ navigator.mediaDevices
     myVideoStream = stream;
     addVideoStream(myVideo, stream);
 
-    peer.on("call", call => {
+    myPeer.on("call", call => {
       call.answer(stream);
       const video = document.createElement("video");
-
       call.on("stream", userVideoStream => {
         addVideoStream(video, userVideoStream);
       });
     });
 
-    socket.on("connected", userId => {
+    socket.on("user-connected", userId => {
+      console.log('user-connected peerID ' + userId);
       connectToNewUser(userId, stream);
-    });
-    socket.on("user-disconnected", userId => {
-      if (peers[userId]) peers[userId].close();
-      video.remove()
     });
   });
 
-    //chat
-    socket.emit("join",name);
-    socket.emit("join-email",email);
+socket.on("user-disconnected", userId => {
+  if (peers[userId]) peers[userId].close();
+  console.log(userId);
+});
 
-    socket.on('user-connected',name=>{
-      let li = document.createElement("li");
-      li.innerHTML = `${name} has joined the room`;
-      all_messages.append(li);
-      main__chat__window.scrollTop = main__chat__window.scrollHeight;
-      chatInputBox.value = "";
-    })
-    socket.on('user-disconnected',name=>{
-      let li = document.createElement("li");
-      li.innerHTML = `${name} has left the room`;
-      all_messages.append(li);
-      main__chat__window.scrollTop = main__chat__window.scrollHeight;
-      chatInputBox.value = "";
-    })
-    socket.on('chat-message', data => {
+myPeer.on("open", id => {
+  socket.emit("join-room", ROOM_ID, id);
+});
+
+socket.on('chat-message', data => {
       let li = document.createElement("li");
       li.innerHTML = (`${data.name}: ${data.message}`);
       all_messages.append(li);
       main__chat__window.scrollTop = main__chat__window.scrollHeight;
     })
 
-    document.addEventListener("keydown", (e) => {
+document.addEventListener("keydown", (e) => {
       if (e.which === 13 && chatInputBox.value != "") {
         const msg=chatInputBox.value
         let li = document.createElement("li");
@@ -192,50 +181,26 @@ navigator.mediaDevices
       }
     });
 
-    //videocall function
-    peer.on("call", function (call) {
-        getUserMedia(
-          { video: true, audio: true },
-          function (stream) {
-            call.answer(stream); // Answer the call with an A/V stream.
-            const video = document.createElement("video");
-            call.on("stream", function (remoteStream) {
-              addVideoStream(video, remoteStream);
-            });
-          },
-          function (err) {
-            console.log("Failed to get local stream", err);
-          }
-        );
-      });
+function connectToNewUser(userId, stream) {
+  const call = myPeer.call(userId, stream);
+  const video = document.createElement("video");
+  call.on("stream", userVideoStream => {
+    addVideoStream(video, userVideoStream);
+  });
+  call.on("close", () => {
+    video.remove();
+  });
 
-      peer.on("open", id => {
-        socket.emit("join-room", ROOM_ID, id,name);
-      });
+  peers[userId] = call;
+}
 
-      // CHAT
-      const connectToNewUser = (userId, streams) => {
-        const call = peer.call(userId, streams);
-        console.log(call);
-        const video = document.createElement("video");
-        call.on("stream", userVideoStream => {
-          console.log(userVideoStream);
-          addVideoStream(video, userVideoStream);
-        });
-        call.on('close',()=>{
-          video.remove();
-        })
-        peers[userId] = call
-      };
-
-      const addVideoStream = (videoEl, stream) => {
-        videoEl.srcObject = stream;
-        videoEl.addEventListener("loadedmetadata", () => {
-          videoEl.play();
-        });
-
-        videoGrid.append(videoEl);
-      };
+function addVideoStream(video, stream) {
+  video.srcObject = stream;
+  video.addEventListener("loadedmetadata", () => {
+    video.play();
+  });
+  videoGrid.append(video);
+}
 
       const playStop = () => {
         let enabled = myVideoStream.getVideoTracks()[0].enabled;

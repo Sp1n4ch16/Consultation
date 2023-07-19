@@ -1,6 +1,6 @@
-const doctorInfo = require("../database/mongodb");
+const { doctorInfo } = require("../database/mongodb");
 
-const myappointmentAPI = async (req, res, next) => {
+const dhomeAPI = async (req, res, next) => {
   try {
     const doctors = await doctorInfo.find();
     console.log(doctors);
@@ -11,4 +11,4 @@ const myappointmentAPI = async (req, res, next) => {
   }
 };
 
-module.exports = myappointmentAPI;
+module.exports = dhomeAPI;

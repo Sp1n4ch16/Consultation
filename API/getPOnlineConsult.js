@@ -1,4 +1,4 @@
-const doctorInfo = require("../database/mongodb");
+const { doctorInfo } = require("../database/mongodb");
 
 const onlineConsultAPI = async (req, res, next) => {
   try {
