@@ -20,8 +20,8 @@
     ></script>
     <script>
       const ROOM_ID = "<%= roomId %>";
-      const name = "<%= name %>"
-      const email = "<%= email %>"
+      const name = "<%= name %>";
+      const email = "<%= email %>";
     </script>
   </head>
   <body>
@@ -50,9 +50,12 @@
             </div>
           </div>
 
-
           <div class="main__controls_block">
-            <div class="main__controls_button leaveMeeting" id="leave-meeting"onclick="LeaveMeeting()">
+            <div
+              class="main__controls_button leaveMeeting"
+              id="leave-meeting"
+              onclick="LeaveMeeting()"
+            >
               <i class="fa fa-times"></i>
               <span class="">Leave Meeting</span>
             </div>
@@ -73,134 +76,138 @@
             placeholder="Type message here.."
           />
         </div>
-    </div>
-  </div>
-  </div>
-
-  <!--   PayPal Popup   -->
-   <div class="paypal-popup">
-      <div class="paypal-popup-content">
-        <img src="./close.jpg" alt="Close" class="paypal-close" />
-         <form action="/pay" method="post">
-          <button>Pay</button>
-         </form>
       </div>
     </div>
-  
-  <!--   Gcash Popup   -->
-  <div class="gcash-popup">
-    <div class="gcash-popup-content">
-      <img src="./close.jpg" alt="Close" class="gcash-close" />
+
+    <!--   PayPal Popup   -->
+    <div class="paypal-popup">
+      <div class="paypal-popup-content">
+        <img src="./close.jpg" alt="Close" class="paypal-close" />
+        <form action="/pay" method="post">
+          <button>Pay</button>
+        </form>
+      </div>
     </div>
-  </div>
 
-  <!--   Leave Popup   -->
-  <div class="leave-popup">
-    <div class="leave-popup-content">
-      <img src="./close.jpg" alt="Close" class="leave-close" />
-      <h2>Are you sure you want to leave?</h2>
-      <button class="button">Yes</button>
-      <button class="button">No</button>
+    <!--   Gcash Popup   -->
+    <div class="gcash-popup">
+      <div class="gcash-popup-content">
+        <img src="./close.jpg" alt="Close" class="gcash-close" />
+      </div>
     </div>
-  </div>
-  <script>
 
-    const socket = io('/');
-    const chatInputBox = document.getElementById("chat_message");
-    const all_messages = document.getElementById("all_messages");
-    const main__chat__window = document.getElementById("main__chat__window");
-    const videoGrid = document.getElementById("video-grid");
-    const myVideo = document.createElement("video");
-  
-    myVideo.muted = true;
+    <!--   Leave Popup   -->
+    <div class="leave-popup">
+      <div class="leave-popup-content">
+        <img src="./close.jpg" alt="Close" class="leave-close" />
+        <h2>Are you sure you want to leave?</h2>
+        <button class="button">Yes</button>
+        <button class="button">No</button>
+      </div>
+    </div>
+    <script>
+      const socket = io("/");
+      const chatInputBox = document.getElementById("chat_message");
+      const all_messages = document.getElementById("all_messages");
+      const main__chat__window = document.getElementById("main__chat__window");
+      const videoGrid = document.getElementById("video-grid");
+      const myVideo = document.createElement("video");
 
-/*var peer = new Peer(undefined, {
+      myVideo.muted = true;
+
+      /*var peer = new Peer(undefined, {
   host: "/",
   port: "3001",
 });*/
 
-let myVideoStream;
+      let myVideoStream;
 
-const myPeer = new Peer();
+      const myPeer = new Peer();
 
-const peers = {};
+      const peers = {};
 
-var getUserMedia =
-  navigator.getUserMedia ||
-  navigator.webkitGetUserMedia ||
-  navigator.mozGetUserMedia;
+      var getUserMedia =
+        navigator.getUserMedia ||
+        navigator.webkitGetUserMedia ||
+        navigator.mozGetUserMedia;
 
-navigator.mediaDevices
-  .getUserMedia({
-    video: true,
-    audio: true,
-  })
-  .then(stream => {
-    myVideoStream = stream;
-    addVideoStream(myVideo, stream);
+      navigator.mediaDevices
+        .getUserMedia({
+          video: true,
+          audio: true,
+        })
+        .then(stream => {
+          myVideoStream = stream;
+          addVideoStream(myVideo, stream);
 
-    myPeer.on("call", call => {
-      call.answer(stream);
-      const video = document.createElement("video");
-      call.on("stream", userVideoStream => {
-        addVideoStream(video, userVideoStream);
+          myPeer.on("call", call => {
+            call.answer(stream);
+            const video = document.createElement("video");
+            call.on("stream", userVideoStream => {
+              addVideoStream(video, userVideoStream);
+            });
+          });
+
+          socket.on("user-connected", userId => {
+            console.log("user-connected peerID " + userId);
+            connectToNewUser(userId, stream);
+          });
+        });
+
+      socket.on("user-disconnected", userId => {
+        if (peers[userId]) peers[userId].close();
+        console.log("user disconnected" + userId);
       });
-    });
 
-    socket.on("user-connected", userId => {
-      console.log('user-connected peerID ' + userId);
-      connectToNewUser(userId, stream);
-    });
-  });
+      myPeer.on("open", id => {
+        socket.emit("join-room", ROOM_ID, id, name);
+      });
 
-socket.on("user-disconnected", userId => {
-  if (peers[userId]) peers[userId].close();
-  console.log(userId);
-});
-
-myPeer.on("open", id => {
-  socket.emit("join-room", ROOM_ID, id);
-});
-
-socket.on('chat-message', data => {
-      let li = document.createElement("li");
-      li.innerHTML = (`${data.name}: ${data.message}`);
-      all_messages.append(li);
-      main__chat__window.scrollTop = main__chat__window.scrollHeight;
-    })
-
-document.addEventListener("keydown", (e) => {
-      if (e.which === 13 && chatInputBox.value != "") {
-        const msg=chatInputBox.value
+      socket.on("chat-message", data => {
         let li = document.createElement("li");
-        li.innerHTML = "You: "+msg;
+        li.innerHTML = `${data.name}: ${data.message}`;
         all_messages.append(li);
         main__chat__window.scrollTop = main__chat__window.scrollHeight;
-        socket.emit("send-chat-message", chatInputBox.value);
-        chatInputBox.value = "";
+      });
+      socket.on("join-name", name => {
+        let li = document.createElement("li");
+        li.innerHTML = `${name}: has joined the room`;
+        all_messages.append(li);
+        main__chat__window.scrollTop = main__chat__window.scrollHeight;
+      });
+
+      document.addEventListener("keydown", e => {
+        if (e.which === 13 && chatInputBox.value != "") {
+          const msg = chatInputBox.value;
+          let li = document.createElement("li");
+          li.innerHTML = "You: " + msg;
+          all_messages.append(li);
+          main__chat__window.scrollTop = main__chat__window.scrollHeight;
+          socket.emit("send-chat-message", chatInputBox.value);
+          chatInputBox.value = "";
+        }
+      });
+
+      function connectToNewUser(userId, stream) {
+        const call = myPeer.call(userId, stream);
+        const video = document.createElement("video");
+        call.on("stream", userVideoStream => {
+          addVideoStream(video, userVideoStream);
+        });
+        call.on("close", () => {
+          video.remove();
+        });
+
+        peers[userId] = call;
       }
-    });
 
-function connectToNewUser(userId, stream) {
-  const call = myPeer.call(userId, stream);
-  const video = document.createElement("video");
-  call.on("stream", userVideoStream => {
-    addVideoStream(video, userVideoStream);
-  });
-  call.on("close", () => {
-    video.remove();
-  });
-
-  peers[userId] = call;
-}
-
-function addVideoStream(video, stream) {
-  video.srcObject = stream;
-  video.addEventListener("loadedmetadata", () => {
-    video.play();
-  });
-  videoGrid.append(video);
-}
+      function addVideoStream(video, stream) {
+        video.srcObject = stream;
+        video.addEventListener("loadedmetadata", () => {
+          video.play();
+        });
+        videoGrid.append(video);
+      }
 
       const playStop = () => {
         let enabled = myVideoStream.getVideoTracks()[0].enabled;
@@ -247,42 +254,45 @@ function addVideoStream(video, stream) {
         document.getElementById("muteButton").innerHTML = html;
       };
       function appendMessage(message) {
-        console.log(message)
+        console.log(message);
         let li = document.createElement("li");
-            li.innerHTML = message;
-            all_messages.append(li);
-            main__chat__window.scrollTop = main__chat__window.scrollHeight;
+        li.innerHTML = message;
+        all_messages.append(li);
+        main__chat__window.scrollTop = main__chat__window.scrollHeight;
       }
-
 
       //Paypal
       const PayPalPayment = () => {
         document.querySelector(".paypal-popup").style.display = "flex";
       };
-      document.querySelector(".paypal-close").addEventListener("click", function () {
-        document.querySelector(".paypal-popup").style.display = "none";
-      });
+      document
+        .querySelector(".paypal-close")
+        .addEventListener("click", function () {
+          document.querySelector(".paypal-popup").style.display = "none";
+        });
 
       //Gcash
       const GcashPayment = () => {
         document.querySelector(".gcash-popup").style.display = "flex";
       };
-      document.querySelector(".gcash-close").addEventListener("click", function () {
-        document.querySelector(".gcash-popup").style.display = "none";
-      });
+      document
+        .querySelector(".gcash-close")
+        .addEventListener("click", function () {
+          document.querySelector(".gcash-popup").style.display = "none";
+        });
 
-       //LeaveMeeting
-       const LeaveMeeting = () => {
+      //LeaveMeeting
+      const LeaveMeeting = () => {
         document.querySelector(".leave-popup").style.display = "flex";
       };
-      document.querySelector(".leave-close").addEventListener("click", function () {
-        document.querySelector(".leave-popup").style.display = "none";
-      });
+      document
+        .querySelector(".leave-close")
+        .addEventListener("click", function () {
+          document.querySelector(".leave-popup").style.display = "none";
+        });
 
       //Paypal Script
-      const ammountElement= document.getElementById("amount")
-
-
-  </script>
+      const ammountElement = document.getElementById("amount");
+    </script>
   </body>
 </html>

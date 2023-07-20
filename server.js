@@ -41,14 +41,13 @@ const {
   ScreenRecord,
 } = require("./database/mongodb");
 
-const view = path.join(__dirname, "views");
 app.set("view engine", "ejs");
-app.set("views", view);
 
 app.use(express.static("src"));
 app.use(express.static("CSS"));
 app.use(express.static("database"));
 app.use(express.static("images"));
+app.use(express.static("views"));
 app.use(cookieparser());
 app.use(express.urlencoded({ extended: false }));
 app.use(
@@ -64,9 +63,10 @@ app.use(
 const users = {};
 
 io.on("connection", socket => {
-  socket.on("join-room", (roomId, userId) => {
-    socket.join(roomId);
+  socket.on("join-room", (roomId, userId, name) => {
+    users[socket.id] = name;
     socket.broadcast.emit("user-connected", userId);
+    socket.broadcast.emit("join-name", name);
 
     socket.on("disconnect", () => {
       socket.broadcast.emit("user-disconnected", userId);
@@ -90,6 +90,9 @@ app.get("/loginFailed", (req, res) => {
 app.get("/loginSuccess", (req, res) => {
   res.render("loginSuccess");
 });
+app.get("/verify", (req, res) => {
+  res.render("verify");
+});
 
 app.get("/login/verify-email", loginVerify, async (req, res) => {
   res.redirect("/");
@@ -108,6 +111,10 @@ app.get("/DHome", dhomeAPI, (req, res) => {});
 app.get("/POnlineConsult", onlineConsultAPI, (req, res) => {});
 
 app.get("/myappointment", transferAppointmentsToHistory, myappointmentAPI);
+
+app.get("/PAppointment", (req, res) => {
+  res.render("PAppointment");
+});
 
 app.get("/room", (req, res) => {
   res.redirect(`/room${uuidv4()}`);

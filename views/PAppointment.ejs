@@ -5,7 +5,10 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Document</title>
     <link rel="stylesheet" href="/PAppointment.css" />
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
   </head>
 
@@ -18,10 +21,6 @@
         </div>
         <div class="doctor">Dr. Ryan</div>
         <div class="doctor"></div>
-        <div class="txt_field">
-          <input  name="age" required />
-          <label>Age</label>
-        </div>
         <div class="txt_field">
           <input id="datetime" name="date" required />
           <label>Date</label>
@@ -38,16 +37,18 @@
             <option value="Oral Prophylaxis">Oral Prophylaxis</option>
             <option value="Dental Restoration">Dental Restoration</option>
             <option value="Dental Extraction">Dental Extraction</option>
-            <option value="Removal of Impacted tooth Surgical">Removal of Impacted tooth Surgical</option>
-            <option value="Facbrication of removal prosthesis">Facbrication of removal prosthesis</option>
+            <option value="Removal of Impacted tooth Surgical">
+              Removal of Impacted tooth Surgical
+            </option>
+            <option value="Facbrication of removal prosthesis">
+              Facbrication of removal prosthesis
+            </option>
             <option value="Orthodentic treatment">Orthodentic treatment</option>
             <option value="Aesthetic Dentistry">Aesthetic Dentistry</option>
-            <option value="Root Canal treatment">Root Canal treatment</option>
-          </select>.
-        </div>
-        <div class="photo">
-          <input type="file" id="image" name="image" />
-          <label for="image">Upload Image</label>
+            <option value="Root Canal treatment">
+              Root Canal treatment
+            </option></select
+          >.
         </div>
         <input type="submit" value="Submit" />
       </form>
@@ -61,7 +62,7 @@
         maxDate: new Date().fp_incr(14), // 14 days from now
         time_24hr: true,
         minTime: "08:00",
-        maxTime: "17:00"
+        maxTime: "17:00",
       });
     </script>
   </body>
