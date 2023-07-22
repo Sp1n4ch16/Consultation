@@ -29,6 +29,7 @@ const onlineConsultAPI = require("./API/getPOnlineConsult");
 const roomAPI = require("./API/getRoom");
 const loginAPI = require("./API/postLogin");
 const registerAPI = require("./API/postRegister");
+const postPOnlineConsultAPI = require("./API/postPOnlineConsult");
 
 const {
   Register,
@@ -129,37 +130,12 @@ app.post("/login", verifyEmail, loginAPI, (req, res) => {});
 app.post("/register", registerAPI, (req, res) => {});
 
 /*---ONLINE CONSULTATION----*/
-app.post("/POnlineConsult", upload.single("image"), async (req, res) => {
-  const checkdate = req.body.date;
-  const data = {
-    name: req.cookies.name,
-    date: req.body.date,
-    description: req.body.description,
-    email: req.cookies.emailUser,
-    age: req.cookies.age,
-    gender: req.cookies.gender,
-    isVerified: false,
-    paid: "Unpaid",
-    status: "Waiting to Approved",
-  };
-  try {
-    const existingAppointment = await OnlineConsult.findOne({
-      date: checkdate,
-    });
-    if (existingAppointment) {
-      // Appointment already booked
-      res.redirect("bookFailed");
-      console.log("Booked Already");
-    } else {
-      console.log(data);
-      await OnlineConsult.insertMany([data]);
-      console.log(data);
-      res.redirect("PHome");
-    }
-  } catch (error) {
-    console.log(error);
-  }
-});
+app.post(
+  "/POnlineConsult",
+  upload.single("image"),
+  postPOnlineConsultAPI,
+  async (req, res) => {}
+);
 
 server.listen(3000, () => {
   console.log("Port running on 3000");
